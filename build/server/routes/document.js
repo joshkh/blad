@@ -63,6 +63,7 @@
     };
     blad.save = function(doc, cb) {
       var e, m;
+      doc.url = doc.url.toLowerCase();
       if (doc.url[0] !== '/') {
         doc.url = '/' + doc.url;
       }
@@ -168,6 +169,9 @@
         var _this = this;
         return app.db(function(collection) {
           var url;
+          if ((typeof doc !== "undefined" && doc !== null ? doc.url : void 0) != null) {
+            doc.url = doc.url.toLowerCase();
+          }
           url = urlib.parse(_this.req.url, true).pathname.toLowerCase();
           return collection.find({
             'url': new RegExp('^' + url)
@@ -239,9 +243,15 @@
                           'page': html
                         }, context);
                         return app.eco('layout', context, function(err, layout) {
-                          _this.res.writeHead(200, {
-                            'content-type': 'text/html'
-                          });
+                          var e;
+                          try {
+                            _this.res.writeHead(200, {
+                              'content-type': 'text/html'
+                            });
+                          } catch (_error) {
+                            e = _error;
+                            null;
+                          }
                           _this.res.write(err ? html : layout);
                           return _this.res.end();
                         });

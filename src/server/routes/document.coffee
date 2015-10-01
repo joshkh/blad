@@ -27,7 +27,7 @@ module.exports = ({ app, log, blad }) ->
                 @res.writeHead 400, "content-type": "application/json"
                 @res.write JSON.stringify reply
                 @res.end()
-            
+
             else
                 if doc.public
                     # Map a document to a public URL.
@@ -38,13 +38,15 @@ module.exports = ({ app, log, blad }) ->
                 app.db (collection) =>
                     collection.findOne 'url': reply, (err, doc) =>
                         throw err if err
-                        
+
                         cb()
                         @res.write JSON.stringify doc
                         @res.end()
 
     # Save/update a document.
     blad.save = (doc, cb) ->
+        # Lowercase all URLs.
+        doc.url = do doc.url.toLowerCase
         # Prefix URL with a forward slash if not present.
         if doc.url[0] isnt '/' then doc.url = '/' + doc.url
         # Remove trailing slash if present.
@@ -118,6 +120,10 @@ module.exports = ({ app, log, blad }) ->
         @get ->
             # Get the doc(s) from the db. We want to get the whole 'group'.
             app.db (collection) =>
+
+                # Routes are saved as lower case. Convert requested URLs to lower case as well.
+                if doc?.url? then doc.url = do doc.url.toLowerCase
+
                 # A URL might have parameters, only keep the pathname; #80
                 url = urlib.parse(@req.url, true).pathname.toLowerCase()
 
@@ -178,7 +184,10 @@ module.exports = ({ app, log, blad }) ->
                                             context = _.extend 'page': html, context
                                             # Do we have a layout template to render to?
                                             app.eco 'layout', context, (err, layout) =>
-                                                @res.writeHead 200, 'content-type': 'text/html'
+                                                try
+                                                  @res.writeHead 200, 'content-type': 'text/html'
+                                                catch e
+                                                  null
                                                 @res.write if err then html else layout
                                                 @res.end()
                                 else
@@ -251,7 +260,7 @@ module.exports = ({ app, log, blad }) ->
                         @res.writeHead 200, "content-type": "application/json"
                         @res.write JSON.stringify doc
                         @res.end()
-        
+
         post: editSave
         put: editSave
 
@@ -274,7 +283,7 @@ module.exports = ({ app, log, blad }) ->
                         @res.write JSON.stringify 'message': 'The `_id` parameter is not a valid MongoDB id'
                         @res.end()
                         return
-                    
+
                     query = '_id': value
                 else
                     value = decodeURIComponent params.url
